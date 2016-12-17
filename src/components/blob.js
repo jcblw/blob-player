@@ -3,6 +3,7 @@ import {Component, PropTypes} from 'react'
 import * as d3 from 'd3'
 import Simplex from 'perlin-simplex'
 import TWEEN, {Tween} from 'tween.js'
+import {reduceToArcs} from '../map-segments'
 
 const propTypes = {
   radius: PropTypes.number,
@@ -35,11 +36,12 @@ class Blob extends Component {
       mapSegments
     } = props
     super()
+    this.state = {}
     this.mapSegments = mapSegments.bind(this)
   }
 
   getPoints () {
-    return this._points || []
+    return this._points ? [...this._points] : []
   }
 
   componentDidUpdate () {
@@ -58,7 +60,7 @@ class Blob extends Component {
     if (defaultStoppedState) {
       this.noOffset = true
       this._points = d3.range(this.props.segmentAmount)
-        .map(this.mapSegments)
+        .map(this.mapSegments(this.props.radius))
       this.noOffset = false
       this.stop()
     }
@@ -77,53 +79,60 @@ class Blob extends Component {
     }
   }
 
-  stop () {
+  stop (duration = 500, radius) {
     const props = this.props
     const points = this.getPoints()
     this.isStopped = true
     this.noOffset = true
+    const _this = this
     const end = d3.range(props.segmentAmount)
-      .map(this.mapSegments)
+      .map(this.mapSegments(radius || props.radius))
     end.push(end[0])
     this.noOffset = false
     points.forEach(([x, y], i) => {
-      const _this = this
       let tween = new Tween({x, y})
         .easing(TWEEN.Easing.Elastic.Out)
         .to({
           x: end[i][0],
           y: end[i][1]
-        }, 500)
+        }, duration)
         .onUpdate(function () {
           if (!_this.currentTween) _this.currentTween = []
           _this.currentTween[i] = [this.x, this.y]
         })
         .onComplete(() => {
           tween.stop()
-          tween = null
+          if (i === points.length - 1) {
+            _this.currentTween = null
+          }
         })
         .start()
     })
   }
 
-  start () {
+  start (duration) {
     this.isStarting = true
     this.isStopped = false
     const points = this.getPoints()
     const end = d3.range(this.props.segmentAmount)
-      .map(this.mapSegments)
+      .map(this.mapSegments(this.props.radius))
     end.push(end[0])
     points.forEach(([x, y], i) => {
       const _this = this
       new Tween({x, y})
-        .easing(TWEEN.Easing.Elastic.In)
+        .easing(TWEEN.Easing.Elastic.Out)
         .to({
           x: end[i][0],
           y: end[i][1]
-        }, 500)
+        }, duration)
         .onUpdate(function () {
           if (!_this.currentTween) _this.currentTween = []
           _this.currentTween[i] = [this.x, this.y]
+        })
+        .onComplete(function () {
+          if (i === points.length - 1) {
+            _this.currentTween = null
+          }
         })
         .start()
     })
@@ -151,17 +160,65 @@ class Blob extends Component {
     return Math.sqrt((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y)) < radius
   }
 
-  getScrubberPosition () {
-
+  doesPointCollideOnScrubber ([x, y]) {
+    const {scrubberPosition} = this
+    const {scrubberRadius: radius} = this.props
+    const [x1, y1] = scrubberPosition
+    return Math.sqrt((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y)) < radius
   }
 
-  click (...args) {
-    if (this.isStopped) {
-      this.start()
-    } else {
-      this.stop()
+  click (e, ...args) {
+    const {offsetTop, offsetLeft} = this.props.canvas
+    const target = [
+      e.pageX - offsetLeft,
+      e.pageY - offsetTop
+    ]
+
+    // if (this.doesPointCollideOnScrubber(target)) {
+    //   console.log('scrubber clicked')
+    //   return
+    //   // this.props.onScrubberClick(e, ...args, target)
+    // }
+    this.props.onClick(e, ...args)
+  }
+
+  mouseMove (e) {
+    // need to filter this to only when the drag has started
+    const {offsetTop, offsetLeft} = this.props.canvas
+    const x = e.pageX - offsetLeft
+    const y = e.pageY - offsetTop
+    const dist = ([x2, y2]) => Math.sqrt((x - x2) * (x - x2) + (y - y2) * (y - y2))
+    const closestPoint = this._points
+      .reduce((currentPoint, nextPoint) => {
+        if (dist(currentPoint) < dist(nextPoint)) {
+          return nextPoint
+        }
+        return currentPoint
+      })
+
+    if (closestPoint !== this.scrubberPosition) {
+      this.setState({ tmpScrubberPosition: closestPoint })
     }
-    this.props.onClick(...args)
+    //
+  }
+
+  mouseDown (e) {
+    const {offsetTop, offsetLeft} = this.props.canvas
+    const target = [
+      e.pageX - offsetLeft,
+      e.pageY - offsetTop
+    ]
+
+    if (!this.doesPointCollideOnScrubber(target)) {
+      return
+    }
+
+    // set the next set of events to target this element
+    // find nearest point if that point is not current point
+    // pause music
+    // somehow calculate time, this can probably just inverse the logic
+    // that places the scrubber on its current point
+    // on click if point is differnt then current seek to that part of the music
   }
 
   draw () {
@@ -172,7 +229,8 @@ class Blob extends Component {
       currentTime,
       duration,
       scrubberRadius,
-      progressColor
+      progressColor,
+      radius
     } = this.props
     if (!canvas) return
     const context = canvas.getContext('2d')
@@ -185,25 +243,15 @@ class Blob extends Component {
     } else {
       this.iteration += 1
       points = d3.range(segmentAmount)
-        .map(this.mapSegments)
+        .map(this.mapSegments(radius))
       points.push(points[0])
     }
 
     this._points = points
-    this.currentTween = null
+    // this.currentTween = null
     if (points.length < segmentAmount - 1) return
-    let current = 0
-    const arcs = points.reduce((accum, point) => {
-      if (typeof accum[current] === 'undefined') {
-        accum[current] = []
-      }
-      accum[current].push(point)
-      if (accum[current].length === 3) {
-        accum.push([point])
-        current += 1
-      }
-      return accum
-    }, []).filter(arc => arc.length === 3)
+    const arcs = points
+      .reduce(reduceToArcs(), [])
 
     context.beginPath()
     context.translate(0, 0)
@@ -211,11 +259,21 @@ class Blob extends Component {
     points
       .filter((_, i) => i % 2 === 0)
       .reduce(this.drawSegment())
-    arcs.forEach(this.drawArc())
-    context.lineWidth = 50
     context.lineJoin = 'round'
     context.lineCap = 'round'
-    context.strokeStyle = 'rgba(0,0,0,.2)'
+    context.fillStyle = color
+    context.fill()
+    context.closePath()
+
+    // progress bar
+    context.beginPath()
+    context.translate(0, 0)
+    context.scale(1, 1)
+    arcs.forEach(this.drawArc())
+    context.lineWidth = scrubberRadius
+    context.lineJoin = 'round'
+    context.lineCap = 'round'
+    context.strokeStyle = '#5b8f8c'
     context.stroke()
     context.fillStyle = color
     context.fill()
@@ -243,6 +301,7 @@ class Blob extends Component {
       lastPoint = [...arcs].shift()
     }
     lastPoint = [...lastPoint].pop()
+    this.scrubberPosition = lastPoint
     context.beginPath()
     context.translate(0, 0)
     context.scale(1, 1)
@@ -251,7 +310,6 @@ class Blob extends Component {
     context.shadowBlur = 2
     context.arc(lastPoint[0], lastPoint[1], scrubberRadius, 0, Math.PI * 2, true)
     context.fillStyle = progressColor
-    // context.fillStyle = 'tomato'
     context.fill()
     context.closePath()
   }

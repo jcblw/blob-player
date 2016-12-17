@@ -24,7 +24,6 @@ class Stage extends Component {
   constructor (...args) {
     super(...args)
     this.draw = this.draw.bind(this)
-    this.onCanvasClick = this.onCanvasClick.bind(this)
     this.childrenRefs = []
     this.isInitialize = false
     this.initialize = (...args) => {
@@ -54,22 +53,24 @@ class Stage extends Component {
     }
   }
 
-  onCanvasClick (e, ...args) {
-    const {offsetTop, offsetLeft} = this.canvas
-    const target = [
-      e.pageX - offsetLeft,
-      e.pageY - offsetTop
-    ]
-    this.childrenRefs.forEach((child) => {
-      if (
-        typeof child.doesPointCollide !== 'function' &&
-        typeof child.click !== 'function'
-      ) return
+  onCanvasEvent (eventName) {
+    return (e, ...args) => {
+      const {offsetTop, offsetLeft} = this.canvas
+      const target = [
+        e.pageX - offsetLeft,
+        e.pageY - offsetTop
+      ]
+      this.childrenRefs.forEach((child) => {
+        if (
+          typeof child.doesPointCollide !== 'function' &&
+          typeof child[eventName] !== 'function'
+        ) return
 
-      if (child.doesPointCollide(target)) {
-        child.click(e, ...args, target)
-      }
-    })
+        if (child.doesPointCollide(target)) {
+          child[eventName](e, ...args, target)
+        }
+      })
+    }
   }
 
   draw (...args) {
@@ -90,7 +91,9 @@ class Stage extends Component {
 
   addRef (i) {
     return (r) => {
+      if (!r) return
       this.childrenRefs[i] = r
+      r.props.getInstance(r)
     }
   }
 
@@ -132,7 +135,10 @@ class Stage extends Component {
           this.context = r.getContext('2d')
           this.initialize()
         }}
-        onClick={this.onCanvasClick}
+        onMouseDown={this.onCanvasEvent('mouseDown')}
+        onMouseUp={this.onCanvasEvent('mouseDown')}
+        onMouseMove={this.onCanvasEvent('mouseMove')}
+        onClick={this.onCanvasEvent('click')}
         className={expand}
         width={width}
         height={height}

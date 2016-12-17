@@ -5,17 +5,19 @@ const propTypes = {
   src: PropTypes.string,
   onFrequencyChange: PropTypes.func,
   onEnd: PropTypes.func,
-  onStart: PropTypes.func,
+  onPlay: PropTypes.func,
   onLoad: PropTypes.func,
   onError: PropTypes.func,
+  onPause: PropTypes.func,
   autoplay: PropTypes.bool
 }
 const defaultProps = {
   onFrequencyChange: noop,
   onEnd: noop,
-  onStart: noop,
+  onPlay: noop,
   onLoad: noop,
-  onError: noop
+  onError: noop,
+  onPause: noop
 }
 
 class Sound extends Component {
@@ -23,8 +25,9 @@ class Sound extends Component {
     super(props)
     this.state = {}
     this.onFrequencyChange = this.onFrequencyChange.bind(this)
-    this.onAudioStart = this.onAudioStart.bind(this)
+    this.onAudioPlay = this.onAudioPlay.bind(this)
     this.onAudioEnd = this.onAudioEnd.bind(this)
+    this.onAudioPause = this.onAudioPause.bind(this)
     if (props.src) {
       this.downloadSound(props.src, props.autoplay)
     }
@@ -49,9 +52,10 @@ class Sound extends Component {
   }
 
   soundBoardEvents (method) {
-    soundBoard[method]('start', this.onAudioStart)
+    soundBoard[method]('play', this.onAudioPlay)
     soundBoard[method]('frequencyData', this.onFrequencyChange)
     soundBoard[method]('end', this.onAudioEnd)
+    soundBoard[method]('pause', this.onAudioPause)
   }
 
   componentDidMount () {
@@ -62,13 +66,13 @@ class Sound extends Component {
     this.soundBoardEvents('off')
   }
 
-  onAudioStart (src, source) {
+  onAudioPlay (src, source) {
     if (src !== this.props.src) return
     this.setState({
       audioPlaying: true,
       source
     })
-    this.props.onStart(src, source)
+    this.props.onPlay(src, source)
   }
 
   onAudioEnd (src, source) {
@@ -78,6 +82,14 @@ class Sound extends Component {
       source: null
     })
     this.props.onEnd(src, source)
+  }
+
+  onAudioPause (src, source) {
+    if (src !== this.props.src) return
+    this.setState({
+      audioPlaying: false
+    })
+    this.props.onPause(src, source)
   }
 
   onFrequencyChange (src, ...args) {
@@ -90,7 +102,7 @@ class Sound extends Component {
   }
 
   play () {
-    soundBoard.play(this.props.src, undefined, this.getCurrentTime())
+    soundBoard.play(this.props.src, this.getCurrentTime())
   }
 
   pause () {

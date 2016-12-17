@@ -76,6 +76,7 @@ class Layout extends Component {
   }
 
   onChange () {
+    if (!this.sound || !this.state.audioReady) return
     if (!this.sound.isPlaying()) {
       this.sound.play()
     } else {
@@ -89,9 +90,12 @@ class Layout extends Component {
       <div className={rel}>
         <Sound
           ref={i => { this.sound = i }}
-          src='./src/headspace.mp3'
+          src='./src/ghost.mp3'
           onFrequencyChange={this.onFrequencyChange}
           onLoad={this.onLoad}
+          onEnd={() => this.blob.stop(1000, 1)}
+          onPlay={() => this.blob.start(1000)}
+          onPause={() => this.blob.stop(1000, 75)}
         />
         <Stage
           width={window.innerWidth}
@@ -104,15 +108,19 @@ class Layout extends Component {
           backgroundColor='#82ccc8'
         >
           <Blob
+            getInstance={b => {
+              // cant use ref here
+              this.blob = b
+            }}
             color='white'
             mapSegments={mapSegments}
             defaultStoppedState={startStopped}
-            radius={currentFreq ? (currentFreq * 10) + 100 : 100}
-            spread={currentFreq ? currentFreq + 5 : 5}
-            scrubberRadius={currentFreq ? currentFreq + 10 : 10}
+            radius={100}
+            spread={currentFreq ? (currentFreq * 5) + 3 : 3}
+            scrubberRadius={currentFreq ? (currentFreq * 5) + 20 : 20}
             currentTime={currentTime}
             duration={duration}
-            segmentAmount={1080}
+            segmentAmount={1080 * 2}
             onClick={this.onChange}
           />
 
