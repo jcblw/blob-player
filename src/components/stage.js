@@ -55,11 +55,16 @@ class Stage extends Component {
 
   onCanvasEvent (eventName) {
     return (e, ...args) => {
+      if (eventName.match(/touch/g)) {
+        const touch = e.touches[0]
+        if (touch) e = touch
+      }
       const {offsetTop, offsetLeft} = this.canvas
       const target = [
         e.pageX - offsetLeft,
         e.pageY - offsetTop
       ]
+
       this.childrenRefs.forEach((child) => {
         if (
           typeof child.doesPointCollide !== 'function' &&
@@ -93,7 +98,7 @@ class Stage extends Component {
     return (r) => {
       if (!r) return
       this.childrenRefs[i] = r
-      r.props.getInstance(r)
+      if (r.props.getInstance) r.props.getInstance(r)
     }
   }
 
@@ -136,9 +141,13 @@ class Stage extends Component {
           this.initialize()
         }}
         onMouseDown={this.onCanvasEvent('mouseDown')}
-        onMouseUp={this.onCanvasEvent('mouseDown')}
         onMouseMove={this.onCanvasEvent('mouseMove')}
         onClick={this.onCanvasEvent('click')}
+
+        onTouchStart={this.onCanvasEvent('touchStart')}
+        onTouchMove={this.onCanvasEvent('touchMove')}
+        onTouchEnd={this.onCanvasEvent('touchEnd')}
+
         className={expand}
         width={width}
         height={height}

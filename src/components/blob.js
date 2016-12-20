@@ -17,17 +17,30 @@ const propTypes = {
   currentTime: PropTypes.number,
   duration: PropTypes.number,
   scrubberRadius: PropTypes.number,
-  progressColor: PropTypes.string
+  progressColor: PropTypes.string,
+  stoppedRadius: PropTypes.number,
+  animationDuration: PropTypes.number,
+  isPlaying: PropTypes.bool,
+  trackColor: PropTypes.string,
+  onSetScrubberTime: PropTypes.func,
+  onStopSound: PropTypes.func
 }
 const defaultProps = {
   radius: 100,
-  color: 'white',
   segmentAmount: 2 * 30,
   spread: 20,
   mapSegments: x => x,
+  onSetScrubberTime: x => x,
+  onStopSound: x => x,
   defaultStoppedState: false,
   scrubberRadius: 10,
-  progressColor: '#f47d30'
+  color: 'white',
+  trackColor: '#ddd',
+  progressColor: 'tomato',
+  animationDuration: 1000
+}
+const dist = ([x, y], [x2, y2]) => {
+  return Math.sqrt(Math.pow(x2 - x, 2) + Math.pow(y2 - y, 2))
 }
 
 class Blob extends Component {
@@ -44,9 +57,26 @@ class Blob extends Component {
     return this._points ? [...this._points] : []
   }
 
-  componentDidUpdate () {
-    if (!this.props.canvas || this._context) return
-    const {canvas, defaultStoppedState} = this.props
+  componentDidMount () {
+    const {isPlaying, canvas} = this.props
+    if (canvas) {
+      this.hydrateCanvasData(canvas)
+      this.togglePlayingState(isPlaying)
+    }
+  }
+
+  componentDidUpdate (lastProps) {
+    const {canvas, isPlaying} = this.props
+    const {isPlaying: wasPlaying} = lastProps
+    if (!this._context && canvas) {
+      this.hydrateCanvasData(canvas)
+    }
+    if (isPlaying !== wasPlaying) {
+      this.togglePlayingState(isPlaying)
+    }
+  }
+
+  hydrateCanvasData (canvas) {
     const width = canvas.width
     const height = canvas.height
     this._context = canvas.getContext('2d')
@@ -57,13 +87,28 @@ class Blob extends Component {
       width / 2,
       height / 2
     ]
-    if (defaultStoppedState) {
-      this.noOffset = true
+  }
+
+  togglePlayingState (isPlaying) {
+    if (!this._points) {
+      this.noOffset = !isPlaying
       this._points = d3.range(this.props.segmentAmount)
-        .map(this.mapSegments(this.props.radius))
+        .map(this.mapSegments(isPlaying
+          ? this.props.radius
+          : (this.props.stoppedRadius || this.props.radius)
+        ))
       this.noOffset = false
-      this.stop()
     }
+    if (isPlaying) {
+      this.start(
+        this.props.animationDuration
+      )
+      return
+    }
+    this.stop(
+      this.props.animationDuration,
+      this.props.stoppedRadius
+    )
   }
 
   drawSegment (radius) {
@@ -79,7 +124,7 @@ class Blob extends Component {
     }
   }
 
-  stop (duration = 500, radius) {
+  stop (duration, radius) {
     const props = this.props
     const points = this.getPoints()
     this.isStopped = true
@@ -153,33 +198,35 @@ class Blob extends Component {
     }
   }
 
-  doesPointCollide ([x, y]) {
+  doesPointCollide (point) {
     const {center} = this
     const {radius} = this.props
-    const [x1, y1] = center
-    return Math.sqrt((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y)) < radius
+    const {isDraggingScrubber} = this.state
+    if (isDraggingScrubber) return true
+    return dist(point, center) < radius
   }
 
-  doesPointCollideOnScrubber ([x, y]) {
+  doesPointCollideOnScrubber (point) {
     const {scrubberPosition} = this
     const {scrubberRadius: radius} = this.props
-    const [x1, y1] = scrubberPosition
-    return Math.sqrt((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y)) < radius
+    return dist(point, scrubberPosition) < radius
   }
 
-  click (e, ...args) {
-    const {offsetTop, offsetLeft} = this.props.canvas
-    const target = [
-      e.pageX - offsetLeft,
-      e.pageY - offsetTop
-    ]
+  click (e) {
+    if (this.state.isDraggingScrubber) {
+      const {duration, onSetScrubberTime} = this.props
+      const {tmpScrubberPositionIndex} = this.state
+      const scrubberTime = (duration / this._points.length) * tmpScrubberPositionIndex
+      onSetScrubberTime(scrubberTime)
+      this.setState({
+        isDraggingScrubber: false,
+        tmpScrubberPosition: null,
+        tmpScrubberPositionIndex: null
+      })
+      return
+    }
 
-    // if (this.doesPointCollideOnScrubber(target)) {
-    //   console.log('scrubber clicked')
-    //   return
-    //   // this.props.onScrubberClick(e, ...args, target)
-    // }
-    this.props.onClick(e, ...args)
+    this.props.onClick(e)
   }
 
   mouseMove (e) {
@@ -187,39 +234,41 @@ class Blob extends Component {
     const {offsetTop, offsetLeft} = this.props.canvas
     const x = e.pageX - offsetLeft
     const y = e.pageY - offsetTop
-    const dist = ([x2, y2]) => Math.sqrt((x - x2) * (x - x2) + (y - y2) * (y - y2))
+    const point = [x, y]
     const closestPoint = this._points
       .reduce((currentPoint, nextPoint) => {
-        if (dist(currentPoint) < dist(nextPoint)) {
+        if (dist(point, currentPoint) > dist(point, nextPoint)) {
           return nextPoint
         }
         return currentPoint
       })
 
     if (closestPoint !== this.scrubberPosition) {
-      this.setState({ tmpScrubberPosition: closestPoint })
+      this.setState({
+        tmpScrubberPosition: closestPoint,
+        tmpScrubberPositionIndex: this._points.indexOf(closestPoint)
+      })
     }
-    //
   }
 
   mouseDown (e) {
-    const {offsetTop, offsetLeft} = this.props.canvas
+    const {onStopSound, canvas} = this.props
+    const {offsetTop, offsetLeft} = canvas
     const target = [
       e.pageX - offsetLeft,
       e.pageY - offsetTop
     ]
 
-    if (!this.doesPointCollideOnScrubber(target)) {
+    if (this.doesPointCollideOnScrubber(target)) {
+      onStopSound()
+      this.setState({isDraggingScrubber: true})
       return
     }
-
-    // set the next set of events to target this element
-    // find nearest point if that point is not current point
-    // pause music
-    // somehow calculate time, this can probably just inverse the logic
-    // that places the scrubber on its current point
-    // on click if point is differnt then current seek to that part of the music
   }
+
+  touchStart (e) { this.mouseDown(e) }
+  touchEnd (e) { this.click(e) }
+  touchMove (e) { this.mouseMove(e) }
 
   draw () {
     const {
@@ -230,8 +279,14 @@ class Blob extends Component {
       duration,
       scrubberRadius,
       progressColor,
-      radius
+      radius,
+      trackColor
     } = this.props
+    const {
+      isDraggingScrubber,
+      tmpScrubberPosition,
+      tmpScrubberPositionIndex
+    } = this.state
     if (!canvas) return
     const context = canvas.getContext('2d')
     let points
@@ -247,7 +302,7 @@ class Blob extends Component {
       points.push(points[0])
     }
 
-    this._points = points
+    this._points = points.filter(x => x)
     // this.currentTween = null
     if (points.length < segmentAmount - 1) return
     const arcs = points
@@ -273,14 +328,16 @@ class Blob extends Component {
     context.lineWidth = scrubberRadius
     context.lineJoin = 'round'
     context.lineCap = 'round'
-    context.strokeStyle = '#5b8f8c'
+    context.strokeStyle = trackColor
     context.stroke()
     context.fillStyle = color
     context.fill()
     context.closePath()
 
     // progress bar
-    const progress = currentTime / duration
+    const progress = isDraggingScrubber
+      ? tmpScrubberPositionIndex / this._points.length
+      : currentTime / duration
     const progressArcs = arcs.slice(0, Math.floor(arcs.length * progress))
     context.beginPath()
     context.translate(0, 0)
@@ -295,8 +352,9 @@ class Blob extends Component {
     context.fill()
     context.closePath()
 
-    // scrubber
-    let lastPoint = [...progressArcs].pop()
+    let lastPoint = isDraggingScrubber && tmpScrubberPosition
+      ? [tmpScrubberPosition]
+      : [...progressArcs].pop()
     if (!lastPoint) {
       lastPoint = [...arcs].shift()
     }

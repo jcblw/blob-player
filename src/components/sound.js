@@ -101,12 +101,14 @@ class Sound extends Component {
     return !!this.state.audioPlaying
   }
 
-  play () {
-    soundBoard.play(this.props.src, this.getCurrentTime())
+  play (time) {
+    soundBoard.play(this.props.src, time || this.getCurrentTime())
   }
 
   pause () {
-    soundBoard.pause(this.props.src)
+    if (this.state.audioPlaying) {
+      soundBoard.pause(this.props.src)
+    }
   }
 
   getCurrentTime () {

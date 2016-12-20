@@ -3,8 +3,14 @@ import React, {Component} from 'react'
 import Stage from './stage'
 import Sound from './sound'
 import Blob from './blob'
+import PlayButton from './play-button'
 import TWEEN from 'tween.js'
 import mapSegments from '../map-segments'
+const PLAYER_BG_COLOR = '#82ccc8'
+const TRACK_COLOR = '#5b8f8c'
+const PLAY_BUTTON_BG = '#fff'
+const PLAY_BUTTON_COLOR = '#ddd'
+const PROGRESS_COLOR = '#f47d30'
 
 const rel = style({
   position: 'relative'
@@ -22,7 +28,7 @@ const overlay = merge(
 )
 const timeText = style({
   position: 'absolute',
-  top: '75vh',
+  top: '70vh',
   fontSize: '15px',
   left: '0',
   fontFamily: 'helvetica',
@@ -47,11 +53,13 @@ class Layout extends Component {
     super()
     this.state = {
       currentFreq: 0,
-      currentTime: 0
+      currentTime: 0,
+      isEnd: true
     }
     this.onChange = this.onChange.bind(this)
     this.onFrequencyChange = this.onFrequencyChange.bind(this)
     this.onLoad = this.onLoad.bind(this)
+    this.onSetScrubberTime = this.onSetScrubberTime.bind(this)
   }
 
   onLoad () {
@@ -84,8 +92,16 @@ class Layout extends Component {
     }
   }
 
+  onSetScrubberTime (time) {
+    // set time
+    this.sound.pause()
+    this.setState({currentTime: time})
+    this.sound.play(time)
+  }
+
   render () {
-    const {currentFreq, currentTime, duration} = this.state
+    const {currentFreq, currentTime, duration, isEnd} = this.state
+    const isPlaying = this.sound && this.sound.isPlaying()
     return (
       <div className={rel}>
         <Sound
@@ -93,9 +109,8 @@ class Layout extends Component {
           src='./src/ghost.mp3'
           onFrequencyChange={this.onFrequencyChange}
           onLoad={this.onLoad}
-          onEnd={() => this.blob.stop(1000, 1)}
-          onPlay={() => this.blob.start(1000)}
-          onPause={() => this.blob.stop(1000, 75)}
+          onEnd={() => this.setState({isEnd: true})}
+          onPlay={() => this.setState({isEnd: false})}
         />
         <Stage
           width={window.innerWidth}
@@ -105,25 +120,33 @@ class Layout extends Component {
             this.forceUpdate()
           }}
           fps={30}
-          backgroundColor='#82ccc8'
+          backgroundColor={PLAYER_BG_COLOR}
         >
           <Blob
-            getInstance={b => {
-              // cant use ref here
-              this.blob = b
-            }}
-            color='white'
+            getInstance={b => this.blob = b}
+            color={PLAY_BUTTON_BG}
+            trackColor={TRACK_COLOR}
+            progressColor={PROGRESS_COLOR}
             mapSegments={mapSegments}
             defaultStoppedState={startStopped}
             radius={100}
-            spread={currentFreq ? (currentFreq * 5) + 3 : 3}
-            scrubberRadius={currentFreq ? (currentFreq * 5) + 20 : 20}
-            currentTime={currentTime}
-            duration={duration}
+            animationDuration={1000}
+            stoppedRadius={95}
+            spread={currentFreq ? (currentFreq * 3) + 3 : 3}
+            scrubberRadius={currentFreq ? (currentFreq * 2) + 20 : 20}
+            currentTime={isEnd ? 0 : currentTime}
+            duration={isEnd ? 0 : duration}
             segmentAmount={1080 * 2}
             onClick={this.onChange}
+            isPlaying={isPlaying}
+            onSetScrubberTime={this.onSetScrubberTime}
+            onStopSound={() => this.sound.pause()}
           />
-
+          <PlayButton
+            color={PLAY_BUTTON_COLOR}
+            isPlaying={isPlaying}
+            size={45}
+          />
         </Stage>
         <div className={overlay}>
           <div className={normalizeContainer}>
