@@ -23,6 +23,7 @@ const defaultProps = {
 class Sound extends Component {
   constructor (props) {
     super(props)
+
     this.state = {}
     this.onFrequencyChange = this.onFrequencyChange.bind(this)
     this.onAudioPlay = this.onAudioPlay.bind(this)
@@ -34,7 +35,11 @@ class Sound extends Component {
   }
 
   downloadSound (src, autoplay) {
-    soundBoard.downloadSound(src, src)
+    this.setState({ audioReady: false })
+    const isUrl = typeof src === 'string'
+    const method = isUrl ? 'downloadSound' : 'loadBuffer'
+    this.id = isUrl ? src : +(new Date())
+    soundBoard[method](this.id, src)
       .then(() => {
         this.setState({ audioReady: true })
         this.props.onLoad(src)
@@ -67,7 +72,7 @@ class Sound extends Component {
   }
 
   onAudioPlay (src, source) {
-    if (src !== this.props.src) return
+    if (src !== this.id) return
     this.setState({
       audioPlaying: true,
       source
@@ -76,7 +81,7 @@ class Sound extends Component {
   }
 
   onAudioEnd (src, source) {
-    if (src !== this.props.src) return
+    if (src !== this.id) return
     this.setState({
       audioPlaying: false,
       source: null
@@ -85,7 +90,7 @@ class Sound extends Component {
   }
 
   onAudioPause (src, source) {
-    if (src !== this.props.src) return
+    if (src !== this.id) return
     this.setState({
       audioPlaying: false
     })
@@ -93,7 +98,7 @@ class Sound extends Component {
   }
 
   onFrequencyChange (src, ...args) {
-    if (src !== this.props.src) return
+    if (src !== this.id) return
     this.props.onFrequencyChange(...args)
   }
 
@@ -102,25 +107,25 @@ class Sound extends Component {
   }
 
   play (time) {
-    soundBoard.play(this.props.src, time || this.getCurrentTime())
+    soundBoard.play(this.id, time || this.getCurrentTime())
   }
 
   pause () {
     if (this.state.audioPlaying) {
-      soundBoard.pause(this.props.src)
+      soundBoard.pause(this.id)
     }
   }
 
   getCurrentTime () {
     try {
-      return soundBoard.getCurrentTime(this.props.src)
+      return soundBoard.getCurrentTime(this.id)
     } catch (e) {
       return
     }
   }
 
   getFullDuration () {
-    return soundBoard.localSoundBuffers[this.props.src].buffer.duration
+    return soundBoard.localSoundBuffers[this.id].buffer.duration
   }
 
   render () {

@@ -1,161 +1,135 @@
-import {style, merge} from 'glamor'
-import React, {Component} from 'react'
-import Stage from './stage'
-import Sound from './sound'
-import Blob from './blob'
-import PlayButton from './play-button'
-import TWEEN from 'tween.js'
-import mapSegments from '../map-segments'
-const PLAYER_BG_COLOR = '#82ccc8'
-const TRACK_COLOR = '#5b8f8c'
+import {css} from 'glamor'
+import React, {Component, PropTypes} from 'react'
+import {connect} from 'react-redux'
+import {bindActionCreators} from 'redux'
+import fileActions from '../actions/files'
+import Player from './player'
+import Playlist from './playlist'
+const BG_COLOR = '#FFD981'
+const PLAYER_BG_COLOR = '#FFB300'
+const TRACK_COLOR = '#BF8600'
 const PLAY_BUTTON_BG = '#fff'
 const PLAY_BUTTON_COLOR = '#ddd'
-const PROGRESS_COLOR = '#f47d30'
+const PROGRESS_COLOR = '#fff'
 
-const rel = style({
-  position: 'relative'
-})
-const expand = style({
-  position: 'absolute',
-  top: 0,
-  left: 0
-})
-const overlay = merge(
-  expand,
-  style({
-    zIndex: 2
-  })
-)
-const timeText = style({
-  position: 'absolute',
-  top: '70vh',
-  fontSize: '15px',
-  left: '0',
-  fontFamily: 'helvetica',
-  color: '#fff',
-  textAlign: 'center',
-  width: '100vw'
-})
-const convertSecondsToReadableTime = (sec = 0) => {
-  sec = isNaN(sec) ? 0 : sec
-  const minutes = `0${Math.floor(sec / 60)}`.slice(-2)
-  const seconds = `0${Math.floor(sec - (minutes * 60))}`.slice(-2)
-  return `${minutes}:${seconds}`
+const propTypes = {
+  files: PropTypes.arrayOf(PropTypes.object),
+  addFile: PropTypes.func
 }
-const normalizeContainer = style({
+const defaultProps = {
+  files: []
+}
+
+const rel = css({
   position: 'relative'
 })
-
-const startStopped = true
+const expand = css({
+  width: '100%',
+  height: '100%'
+})
+const flex = css({
+  display: 'flex',
+  flexDirection: 'column'
+})
+const flex0 = css({
+  flex: 0
+})
+const flex1 = css({
+  flex: 1
+})
+const bgColor = css({
+  backgroundColor: BG_COLOR
+})
+const playlistContainer = css({
+  maxWidth: 650,
+  backgroundColor: PLAY_BUTTON_BG,
+  margin: '0 auto'
+})
 
 class Layout extends Component {
-  constructor () {
-    super()
-    this.state = {
-      currentFreq: 0,
-      currentTime: 0,
-      isEnd: true
-    }
-    this.onChange = this.onChange.bind(this)
-    this.onFrequencyChange = this.onFrequencyChange.bind(this)
-    this.onLoad = this.onLoad.bind(this)
-    this.onSetScrubberTime = this.onSetScrubberTime.bind(this)
+  cancelEvents (e) {
+    e.preventDefault()
   }
 
-  onLoad () {
-    this.setState({
-      audioReady: true,
-      duration: this.sound.getFullDuration()
-    })
+  componentDidMount () {
+    window.addEventListener('dragover', this.cancelEvents, false)
+    window.addEventListener('drop', this.cancelEvents, false)
   }
 
-  onFrequencyChange (bufferLength, dataArray) {
-    // change level here
-    let max = 0
-    for (let i = 0; i < bufferLength; i++) {
-      const v = dataArray[i] / 128.0
-      max = Math.max(v, max)
-    }
-    this.setState({
-      currentFreq: max - 1,
-      currentTime: this.sound.getCurrentTime(),
-      duration: this.sound.getFullDuration()
-    })
+  onFilesDropped (files) {
+    const fileArr = Array.from(files)
+    Promise.all(fileArr.map(this.decodeFile))
+      .then((dataset) => {
+        dataset.forEach((arrbuff, i) => fileArr[i].buffer = arrbuff)
+        fileArr.forEach((file) => {
+          this.props.addFile(file)
+        })
+      })
+      .catch(() => {})
   }
 
-  onChange () {
-    if (!this.sound || !this.state.audioReady) return
-    if (!this.sound.isPlaying()) {
-      this.sound.play()
-    } else {
-      this.sound.pause()
-    }
-  }
-
-  onSetScrubberTime (time) {
-    // set time
-    this.sound.pause()
-    this.setState({currentTime: time})
-    this.sound.play(time)
+  decodeFile (file) {
+    return (new Promise((resolve, reject) => {
+      const reader =  new FileReader() 
+      reader.addEventListener('load', (e) => {
+        const data = e.target.result
+        resolve(data)
+      })
+      reader.onerror = (err) => reject(err)
+      reader.readAsArrayBuffer(file)
+    }))
   }
 
   render () {
-    const {currentFreq, currentTime, duration, isEnd} = this.state
-    const isPlaying = this.sound && this.sound.isPlaying()
+    const {files} = this.props
+    const buffer = files && files.length ? files[0].buffer : null
     return (
-      <div className={rel}>
-        <Sound
-          ref={i => { this.sound = i }}
-          src='./src/ghost.mp3'
-          onFrequencyChange={this.onFrequencyChange}
-          onLoad={this.onLoad}
-          onEnd={() => this.setState({isEnd: true})}
-          onPlay={() => this.setState({isEnd: false})}
-        />
-        <Stage
-          width={window.innerWidth}
-          height={window.innerHeight}
-          onDraw={(_, ...args) => {
-            TWEEN.update(...args)
-            this.forceUpdate()
-          }}
-          fps={30}
-          backgroundColor={PLAYER_BG_COLOR}
-        >
-          <Blob
-            getInstance={b => this.blob = b}
-            color={PLAY_BUTTON_BG}
-            trackColor={TRACK_COLOR}
-            progressColor={PROGRESS_COLOR}
-            mapSegments={mapSegments}
-            defaultStoppedState={startStopped}
-            radius={100}
-            animationDuration={1000}
-            stoppedRadius={95}
-            spread={currentFreq ? (currentFreq * 3) + 3 : 3}
-            scrubberRadius={currentFreq ? (currentFreq * 2) + 20 : 20}
-            currentTime={isEnd ? 0 : currentTime}
-            duration={isEnd ? 0 : duration}
-            segmentAmount={1080 * 2}
-            onClick={this.onChange}
-            isPlaying={isPlaying}
-            onSetScrubberTime={this.onSetScrubberTime}
-            onStopSound={() => this.sound.pause()}
-          />
-          <PlayButton
-            color={PLAY_BUTTON_COLOR}
-            isPlaying={isPlaying}
-            size={45}
-          />
-        </Stage>
-        <div className={overlay}>
-          <div className={normalizeContainer}>
-            <div className={timeText}>{convertSecondsToReadableTime(duration - currentTime)}</div>
+      <div
+        className={css(rel, flex, expand, bgColor)}
+        onDrop={(e) => {
+          this.onFilesDropped(e.nativeEvent.dataTransfer.files)
+        }}
+      >
+        <div className={css(flex1, flex)}>
+          <div className={flex1}>
           </div>
+          <div className={flex0}>
+            <div className={playlistContainer}>
+              <Playlist files={files} />
+            </div>
+          </div>
+        </div>
+        <div className={flex0}>
+          <Player
+            src={buffer}
+            bgColor={PLAYER_BG_COLOR}
+            playIconColor={PLAY_BUTTON_COLOR}
+            playBgColor={PLAY_BUTTON_BG}
+            trackBarColor={TRACK_COLOR}
+            progressColor={PROGRESS_COLOR}
+            width={window.innerWidth}
+            height={150}
+          />
         </div>
       </div>
     )
   }
 }
 
-export default Layout
+function mapStateToProps ({files}) {
+  return {
+    files
+  }
+}
+
+function mapDispatchToProps (dispatch) {
+  return bindActionCreators(fileActions, dispatch)
+}
+
+Layout.propTypes = propTypes
+Layout.defaultProps = defaultProps
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(Layout)

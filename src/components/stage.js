@@ -1,5 +1,5 @@
-import {style} from 'glamor'
 import React, {Component, PropTypes} from 'react'
+import { css } from 'glamor'
 
 const propTypes = {
   fps: PropTypes.number,
@@ -114,10 +114,8 @@ class Stage extends Component {
 
   render () {
     const {width, height, children, backgroundColor} = this.props
-    const expand = style({
-      position: 'absolute',
-      top: 0,
-      left: 0,
+    const expand = css({
+      display: 'block',
       backgroundColor: backgroundColor
     })
     const cloneChildren = React.Children
