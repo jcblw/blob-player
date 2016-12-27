@@ -3,6 +3,8 @@ import React, {Component, PropTypes} from 'react'
 import {connect} from 'react-redux'
 import {bindActionCreators} from 'redux'
 import fileActions from '../actions/files'
+import * as playlistActions from '../actions/playlist'
+import {flex, flex0, flex1, column} from '../styles/flex'
 import Player from './player'
 import Playlist from './playlist'
 const BG_COLOR = '#FFD981'
@@ -14,7 +16,9 @@ const PROGRESS_COLOR = '#fff'
 
 const propTypes = {
   files: PropTypes.arrayOf(PropTypes.object),
-  addFile: PropTypes.func
+  addFile: PropTypes.func,
+  setCurrentTrack: PropTypes.func,
+  currentTrack: PropTypes.any
 }
 const defaultProps = {
   files: []
@@ -26,16 +30,6 @@ const rel = css({
 const expand = css({
   width: '100%',
   height: '100%'
-})
-const flex = css({
-  display: 'flex',
-  flexDirection: 'column'
-})
-const flex0 = css({
-  flex: 0
-})
-const flex1 = css({
-  flex: 1
 })
 const bgColor = css({
   backgroundColor: BG_COLOR
@@ -70,7 +64,7 @@ class Layout extends Component {
 
   decodeFile (file) {
     return (new Promise((resolve, reject) => {
-      const reader =  new FileReader() 
+      const reader = new FileReader()
       reader.addEventListener('load', (e) => {
         const data = e.target.result
         resolve(data)
@@ -81,21 +75,25 @@ class Layout extends Component {
   }
 
   render () {
-    const {files} = this.props
-    const buffer = files && files.length ? files[0].buffer : null
+    const {files, currentTrack} = this.props
+    const buffer = currentTrack ? currentTrack.buffer : null
     return (
       <div
-        className={css(rel, flex, expand, bgColor)}
+        className={css(rel, flex, column, expand, bgColor)}
         onDrop={(e) => {
           this.onFilesDropped(e.nativeEvent.dataTransfer.files)
         }}
       >
-        <div className={css(flex1, flex)}>
+        <div className={css(flex1, flex, column)}>
           <div className={flex1}>
           </div>
           <div className={flex0}>
             <div className={playlistContainer}>
-              <Playlist files={files} />
+              <Playlist
+                files={files}
+                currentTrack={currentTrack}
+                setCurrentTrack={this.props.setCurrentTrack}
+              />
             </div>
           </div>
         </div>
@@ -116,14 +114,18 @@ class Layout extends Component {
   }
 }
 
-function mapStateToProps ({files}) {
+function mapStateToProps ({files, playlist}) {
   return {
-    files
+    files,
+    currentTrack: playlist.currentTrack
   }
 }
 
 function mapDispatchToProps (dispatch) {
-  return bindActionCreators(fileActions, dispatch)
+  return Object.assign({},
+    bindActionCreators(fileActions, dispatch),
+    bindActionCreators(playlistActions, dispatch)
+  )
 }
 
 Layout.propTypes = propTypes

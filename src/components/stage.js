@@ -27,6 +27,7 @@ class Stage extends Component {
     this.childrenRefs = []
     this.isInitialize = false
     this.initialize = (...args) => {
+      this._isMounted = true
       if (!this.isInitialize) this.start()
       this.isInitialize = true
     }
@@ -89,7 +90,7 @@ class Stage extends Component {
     context.save()
     context.clearRect(0, 0, width, height)
     this.childrenRefs.forEach((child) => {
-      child.draw()
+      if (child.draw) child.draw()
     })
     context.restore()
   }
@@ -98,17 +99,19 @@ class Stage extends Component {
     return (r) => {
       if (!r) return
       this.childrenRefs[i] = r
-      if (r.props.getInstance) r.props.getInstance(r)
+      if (r.props && r.props.getInstance) r.props.getInstance(r)
     }
   }
 
   start () {
+    if (!this._isMounted) return
     clearTimeout(this._timer)
     this.forceUpdate()
     this.draw()
   }
 
   componentWillUnmount () {
+    this._isMounted = false
     clearTimeout(this._timer)
   }
 

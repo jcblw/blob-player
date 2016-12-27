@@ -15,6 +15,11 @@ module.exports = {
   module: {
     loaders: [
       {
+        test: /\.js?$/,
+        loaders: ['react-hot'],
+        include: path.join(__dirname, 'src')
+      },
+      {
         test: /\.js$/,
         exclude: /node_modules|sound-board/,
         loader: 'babel',

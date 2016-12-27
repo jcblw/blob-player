@@ -1,6 +1,7 @@
 
 import React from 'react'
 import { css } from 'glamor'
+import { flex, flex0, flex1, alignItems } from '../styles/flex'
 
 const albumArt = css({
   margin: 25,
@@ -8,36 +9,44 @@ const albumArt = css({
   height: 100,
   backgroundColor: '#ddd'
 })
-const flex = css({
-  display: 'flex',
-  flexDirection: 'row'
-})
-const flex0 = css({
-  flex: 0
-})
-const flex1 = css({
-  flex: 1
-})
 const header = css({
   fontSize: 20,
   fontFamily: 'helvetica'
 })
 
-const PlaylistItem = ({name}) => (
+export const PlaylistItem = ({name, track, setCurrentTrack, isPlaying}) => (
   <div className={flex}>
     <div className={flex0}>
       <div className={albumArt} />
     </div>
-    <div className={flex1}>
+    <div className={css(flex1, flex, alignItems('center'))}>
       <p className={header}>{name}</p>
+    </div>
+    <div className={css(flex0, flex, alignItems('center'))}>
+      {isPlaying
+        ? null
+        : (
+          <button
+            onClick={() => setCurrentTrack(track)}
+          >
+            Play
+          </button>
+        )
+      }
     </div>
   </div>
 )
 
-export default ({files = []}) => (
+export default ({files = [], setCurrentTrack, currentTrack}) => (
   <div>
     {files.map((file, i) => (
-      <PlaylistItem name={file.name} key={`file${i}`} />
+      <PlaylistItem
+        name={file.name}
+        track={file}
+        isPlaying={currentTrack === file}
+        setCurrentTrack={setCurrentTrack}
+        key={`file${i}`}
+      />
     ))}
   </div>
 )

@@ -23,7 +23,8 @@ const propTypes = {
   isPlaying: PropTypes.bool,
   trackColor: PropTypes.string,
   onSetScrubberTime: PropTypes.func,
-  onStopSound: PropTypes.func
+  onStopSound: PropTypes.func,
+  onScrubberDragged: PropTypes.func
 }
 const defaultProps = {
   radius: 100,
@@ -252,7 +253,7 @@ class Blob extends Component {
   }
 
   mouseDown (e) {
-    const {onStopSound, canvas} = this.props
+    const {onStopSound, canvas, onScrubberDragged} = this.props
     const {offsetTop, offsetLeft} = canvas
     const target = [
       e.pageX - offsetLeft,
@@ -260,6 +261,9 @@ class Blob extends Component {
     ]
 
     if (this.doesPointCollideOnScrubber(target)) {
+      if (onScrubberDragged) {
+        onScrubberDragged()
+      }
       onStopSound()
       this.setState({isDraggingScrubber: true})
       return

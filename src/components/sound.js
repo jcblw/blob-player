@@ -1,4 +1,4 @@
-import React, {Component, PropTypes} from 'react'
+import {Component, PropTypes} from 'react'
 import soundBoard from 'sound-board'
 const noop = () => {}
 const propTypes = {
