@@ -1,9 +1,8 @@
-import {css} from 'glamor'
 import React, {Component, PropTypes} from 'react'
 import {bindActionCreators} from 'redux'
 import {connect} from 'react-redux'
 import * as playerActions from '../actions/player'
-import {toReadableTime} from '../utilities/format'
+
 import Stage from './stage'
 import Sound from './sound'
 import Blob from './blob'
@@ -14,6 +13,7 @@ import mapSegments from '../map-segments'
 const propTypes = {
   audioReady: PropTypes.bool,
   bgColor: PropTypes.string,
+  className: PropTypes.string,
   currentFreq: PropTypes.number,
   currentTime: PropTypes.number,
   duration: PropTypes.number,
@@ -31,7 +31,8 @@ const propTypes = {
   src: PropTypes.any,
   trackBarColor: PropTypes.string,
   wasPlaying: PropTypes.bool,
-  width: PropTypes.number
+  width: PropTypes.number,
+  onEnd: PropTypes.func
 }
 const defaultProps = {
   bgColor: '#222',
@@ -42,10 +43,6 @@ const defaultProps = {
   trackBarColor: '#666',
   width: 150
 }
-
-const normalizeContainer = css({
-  position: 'relative'
-})
 
 const startStopped = true
 
@@ -65,16 +62,13 @@ class Player extends Component {
       setAudioReady,
       setDuration,
       setEnd,
-      setAudioCurrentTime,
-      wasPlaying
+      setAudioCurrentTime
     } = this.props
     setEnd(false)
     setAudioReady(true)
     setDuration(this.sound.getFullDuration())
     setAudioCurrentTime(0)
-    if (wasPlaying) { // might want to switch this to autoplay
-      this.sound.play()
-    }
+    this.sound.play()
   }
 
   onFrequencyChange (bufferLength, dataArray) {
@@ -98,6 +92,16 @@ class Player extends Component {
     } else {
       this.sound.pause()
     }
+  }
+
+  pause () {
+    if (!this.sound) return
+    this.sound.pause()
+  }
+
+  play () {
+    if (!this.sound) return
+    this.sound.play()
   }
 
   componentWillUpdate ({src}) {
@@ -137,6 +141,10 @@ class Player extends Component {
     this._isMounted = false
   }
 
+  isPlaying () {
+    return this.sound && this.sound.isPlaying()
+  }
+
   render () {
     const {
       bgColor,
@@ -149,12 +157,16 @@ class Player extends Component {
       currentFreq,
       currentTime,
       duration,
-      isEnd
+      isEnd,
+      width,
+      height,
+      className,
+      onEnd
     } = this.props
 
-    const isPlaying = this.sound && this.sound.isPlaying()
+    const isPlaying = this.isPlaying()
     return (
-      <div>
+      <div className={className}>
         {src
           ? (
               <Sound
@@ -162,15 +174,15 @@ class Player extends Component {
                 src={src}
                 onFrequencyChange={this.onFrequencyChange}
                 onLoad={this.onLoad}
-                onEnd={() => setEnd(true)}
+                onEnd={() => onEnd()}
                 onPlay={() => setEnd(false)}
               />
             )
           : null
         }
         <Stage
-          width={window.innerWidth}
-          height={150}
+          width={width}
+          height={height}
           onDraw={(_, ...args) => {
             if (!this._isMounted) return
             TWEEN.update(...args)
@@ -206,9 +218,6 @@ class Player extends Component {
             size={25}
           />
         </Stage>
-        <div className={normalizeContainer}>
-          <div>{toReadableTime(duration - currentTime)}</div>
-        </div>
       </div>
     )
   }
@@ -227,5 +236,7 @@ function mapDispatchToProps (dispatch) {
 
 export default connect(
   mapStateToProps,
-  mapDispatchToProps
+  mapDispatchToProps,
+  null,
+  { withRef: true }
 )(Player)

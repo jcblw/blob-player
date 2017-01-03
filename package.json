@@ -21,6 +21,7 @@
   "dependencies": {
     "d3": "^4.3.0",
     "domla": "^0.2.1",
+    "filesize": "^3.3.0",
     "glamor": "2.20.5",
     "perlin-simplex": "^0.0.2",
     "react": "^15.3.2",
