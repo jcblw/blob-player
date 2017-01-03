@@ -11,5 +11,13 @@ export default {
       type: 'REMOVE_FILE',
       file
     }
+  },
+
+  updateFile (file, index) {
+    return {
+      type: 'UPDATE_FILE',
+      file,
+      index
+    }
   }
 }

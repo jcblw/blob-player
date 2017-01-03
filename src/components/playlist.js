@@ -2,29 +2,45 @@
 import React from 'react'
 import {css} from 'glamor'
 import filesize from 'filesize'
-import {flex, flex0, flex1, alignItems, column, justifyContent} from '../styles/flex'
+import {flex, flex0, flex1, column, justifyContent} from '../styles/flex'
 import {header, subheader} from '../styles/type'
+import {toReadableTime} from '../utilities/format'
 
-const albumArt = (
-  bgColor = '#ddd',
-  color = 'white'
-) => css({
+const iconBase = css({
   marginTop: 25,
   marginLeft: 25,
   marginBottom: 25,
   width: 50,
   height: 50,
-  backgroundColor: bgColor,
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
-  color: color,
   borderRadius: 25,
-  cursor: 'pointer'
+  cursor: 'pointer',
+  transition: 'background-color .3s ease-out'
+})
+
+const albumArt = (
+  bgColor = '#ddd',
+  color = 'white'
+) => css({
+  backgroundColor: bgColor,
+  color: color
+})
+
+const loading = (
+  color = '#ddd'
+) => css({
+  backgroundColor: 'white',
+  color
 })
 
 const listItem = css({
   paddingRight: 25
+})
+
+const selectedItem = selectedColor => css({
+  borderLeft: `5px solid ${selectedColor}`
 })
 
 const noOverflow = css({
@@ -47,26 +63,35 @@ export const PlaylistItem = ({
   pauseTrack,
   isPlaying,
   albumColor,
-  hasControls = true
+  selectedColor,
+  hasControls = true,
+  isLoading
 }) => (
   <div className={css(flex, listItem)}>
-    {hasControls
+    {hasControls || isLoading
       ? (
-        <div className={flex0}>
-          <div className={albumArt(albumColor)}>
-            {!isPlaying
+        <div className={css(flex0, isPlaying ? selectedItem(selectedColor) : selectedItem('white'))}>
+          <div className={css(iconBase, isLoading ? loading(albumColor) : albumArt(albumColor))}>
+            {isLoading
               ? (
                 <i
                   onClick={() => setCurrentTrack(track)}
                   className='material-icons'
-                >play_arrow</i>
+                >sync</i>
               )
-              : (
-                <i
-                  onClick={() => pauseTrack(track)}
-                  className='material-icons'
-                >pause</i>
-              )
+              : !isPlaying
+                ? (
+                  <i
+                    onClick={() => setCurrentTrack(track)}
+                    className='material-icons'
+                  >play_arrow</i>
+                )
+                : (
+                  <i
+                    onClick={() => pauseTrack(track)}
+                    className='material-icons'
+                  >pause</i>
+                )
             }
           </div>
         </div>
@@ -87,19 +112,23 @@ export default ({
   currentTrack,
   pauseTrack,
   isPlaying,
-  albumColor
+  albumColor,
+  selectedColor
 }) => (
   <div>
     {files.map((file, i) => (
       <PlaylistItem
         name={file.name}
-        subtext={filesize(file.size)}
+        subtext={!file.isLoaded ? 'Processing...' : `${toReadableTime(file.duration)} - ${filesize(file.size)}`}
         track={file}
         isPlaying={currentTrack === file && isPlaying}
         setCurrentTrack={setCurrentTrack}
         pauseTrack={pauseTrack}
         key={`file${i}`}
         albumColor={albumColor}
+        hasControls={file.isLoaded}
+        isLoading={!file.isLoaded}
+        selectedColor={selectedColor}
       />
     ))}
   </div>

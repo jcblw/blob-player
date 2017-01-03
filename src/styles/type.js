@@ -2,7 +2,7 @@
 import {css} from 'glamor'
 
 export const base = css({
-  fontFamily: 'helvetica, sans serif',
+  fontFamily: '"Montserrat", sans serif',
   margin: 0,
   color: '#666'
 })

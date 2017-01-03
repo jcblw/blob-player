@@ -38,7 +38,11 @@ class Sound extends Component {
     this.setState({ audioReady: false })
     const isUrl = typeof src === 'string'
     const method = isUrl ? 'downloadSound' : 'loadBuffer'
-    this.id = isUrl ? src : +(new Date())
+    this.id = isUrl
+      ? src
+      : src.byteLength
+        ? src.byteLength
+        : +new Date()
     soundBoard[method](this.id, src)
       .then(() => {
         this.setState({ audioReady: true })

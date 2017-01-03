@@ -2,6 +2,7 @@ import {css} from 'glamor'
 import React, {Component, PropTypes} from 'react'
 import {connect} from 'react-redux'
 import {bindActionCreators} from 'redux'
+import soundBoard from 'sound-board'
 import fileActions from '../actions/files'
 import * as playlistActions from '../actions/playlist'
 import {flex, flex0, flex1, column, row} from '../styles/flex'
@@ -21,6 +22,8 @@ const propTypes = {
   files: PropTypes.arrayOf(PropTypes.object),
   addFile: PropTypes.func,
   setCurrentTrack: PropTypes.func,
+  updateFile: PropTypes.func,
+  removeFile: PropTypes.func,
   currentTrack: PropTypes.any,
   duration: PropTypes.number,
   currentTime: PropTypes.number
@@ -68,6 +71,9 @@ const queueIcon = css({
   fontSize: 45,
   color: TRACK_COLOR
 })
+const playlistMeta = css({
+  padding: '10px 25px'
+})
 
 class Layout extends Component {
   cancelEvents (e) {
@@ -79,16 +85,39 @@ class Layout extends Component {
     window.addEventListener('drop', this.cancelEvents, false)
   }
 
+  // manage sideeffects in other area
   onFilesDropped (files) {
+    const {updateFile, removeFile} = this.props
     const fileArr = Array.from(files)
+    // need to add all files here
+    fileArr.forEach((file) => {
+      file.isLoaded = false
+      this.props.addFile(file)
+    })
     Promise.all(fileArr.map(this.decodeFile))
       .then((dataset) => {
-        dataset.forEach((arrbuff, i) => fileArr[i].buffer = arrbuff)
-        fileArr.forEach((file) => {
-          this.props.addFile(file)
-        })
+        return Promise.all(dataset.map((arrbuff, i) => {
+          const fileBuffer = Object.assign({}, fileArr[i], {
+            buffer: arrbuff,
+            name: fileArr[i].name,
+            size: fileArr[i].size
+          })
+          // fileArr[i].buffer = arrbuff
+          updateFile(fileBuffer)
+          return soundBoard.loadBuffer(arrbuff.byteLength, arrbuff)
+            .then((buff) => {
+              const fullFile = Object.assign({}, fileBuffer, {
+                duration: buff.duration,
+                isLoaded: true
+              })
+              updateFile(fullFile)
+            })
+            .catch(() => {
+              removeFile(fileBuffer)
+            })
+        }))
       })
-      .catch(() => {})
+      .catch((err) => { console.error(err) })
   }
 
   decodeFile (file) {
@@ -113,8 +142,8 @@ class Layout extends Component {
   }
 
   componentDidUpdate ({files: lastFiles}) {
-    const {files, setCurrentTrack} = this.props
-    if (files.length && !lastFiles.length) {
+    const {files, setCurrentTrack, currentTrack} = this.props
+    if (files.length && files.every(f => f.isLoaded) && !currentTrack) {
       setCurrentTrack(files[0])
     }
   }
@@ -142,6 +171,7 @@ class Layout extends Component {
             </div>
             <div className={css(flex0)}>
               <div className={playlistContainer}>
+                <p className={css(subheader, playlistMeta)}>{files.length} song{files.length === 1 ? '' : 's'}</p>
                 {files && files.length
                   ? (
                     <Playlist
@@ -149,6 +179,7 @@ class Layout extends Component {
                       currentTrack={currentTrack}
                       isPlaying={isPlaying}
                       albumColor={TRACK_COLOR}
+                      selectedColor={PROGRESS_COLOR}
                       setCurrentTrack={(track) => {
                         if (track === currentTrack) {
                           return this.getPlayer().play()
@@ -215,7 +246,6 @@ class Layout extends Component {
                   suptext='Up next'
                   hasControls={false}
                   name={nextTrack.name}
-                  isPlaying={true}
                 />
               )
               : null
