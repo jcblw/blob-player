@@ -19,5 +19,12 @@ export default {
       file,
       index
     }
+  },
+
+  processFiles (files) {
+    return {
+      type: 'PROCESS_FILES',
+      files
+    }
   }
 }

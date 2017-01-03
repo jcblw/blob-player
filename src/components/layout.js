@@ -2,7 +2,6 @@ import {css} from 'glamor'
 import React, {Component, PropTypes} from 'react'
 import {connect} from 'react-redux'
 import {bindActionCreators} from 'redux'
-import soundBoard from 'sound-board'
 import fileActions from '../actions/files'
 import * as playlistActions from '../actions/playlist'
 import {flex, flex0, flex1, column, row} from '../styles/flex'
@@ -20,10 +19,8 @@ const PLAYER_HEIGHT = 150
 
 const propTypes = {
   files: PropTypes.arrayOf(PropTypes.object),
-  addFile: PropTypes.func,
+  processFiles: PropTypes.func,
   setCurrentTrack: PropTypes.func,
-  updateFile: PropTypes.func,
-  removeFile: PropTypes.func,
   currentTrack: PropTypes.any,
   duration: PropTypes.number,
   currentTime: PropTypes.number
@@ -85,51 +82,8 @@ class Layout extends Component {
     window.addEventListener('drop', this.cancelEvents, false)
   }
 
-  // manage sideeffects in other area
   onFilesDropped (files) {
-    const {updateFile, removeFile} = this.props
-    const fileArr = Array.from(files)
-    // need to add all files here
-    fileArr.forEach((file) => {
-      file.isLoaded = false
-      this.props.addFile(file)
-    })
-    Promise.all(fileArr.map(this.decodeFile))
-      .then((dataset) => {
-        return Promise.all(dataset.map((arrbuff, i) => {
-          const fileBuffer = Object.assign({}, fileArr[i], {
-            buffer: arrbuff,
-            name: fileArr[i].name,
-            size: fileArr[i].size
-          })
-          // fileArr[i].buffer = arrbuff
-          updateFile(fileBuffer)
-          return soundBoard.loadBuffer(arrbuff.byteLength, arrbuff)
-            .then((buff) => {
-              const fullFile = Object.assign({}, fileBuffer, {
-                duration: buff.duration,
-                isLoaded: true
-              })
-              updateFile(fullFile)
-            })
-            .catch(() => {
-              removeFile(fileBuffer)
-            })
-        }))
-      })
-      .catch((err) => { console.error(err) })
-  }
-
-  decodeFile (file) {
-    return (new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.addEventListener('load', (e) => {
-        const data = e.target.result
-        resolve(data)
-      })
-      reader.onerror = (err) => reject(err)
-      reader.readAsArrayBuffer(file)
-    }))
+    this.props.processFiles(files)
   }
 
   getPlayer () {
