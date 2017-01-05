@@ -2,7 +2,7 @@
 
 A audio player using [sound board](https://github.com/jcblw/sound-board) lib 
 
-[check out the demo](https://blob-player-efcqrxwcii.now.sh/)
+[check out the demo](https://blob-player-sqbslsnoim.now.sh/)
 
 ![gif](https://media.giphy.com/media/l3vRf6zpOU8xvU9by/giphy.gif)
 
