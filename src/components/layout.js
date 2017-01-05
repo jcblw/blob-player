@@ -20,6 +20,8 @@ const PLAYER_HEIGHT = 150
 const propTypes = {
   files: PropTypes.arrayOf(PropTypes.object),
   processFiles: PropTypes.func,
+  hydrateFiles: PropTypes.func,
+  removeFile: PropTypes.func,
   setCurrentTrack: PropTypes.func,
   currentTrack: PropTypes.any,
   duration: PropTypes.number,
@@ -73,6 +75,11 @@ const playlistMeta = css({
 })
 
 class Layout extends Component {
+  constructor (...args) {
+    super(...args)
+    this.onRemoveTrack = this.onRemoveTrack.bind(this)
+  }
+
   cancelEvents (e) {
     e.preventDefault()
   }
@@ -80,10 +87,15 @@ class Layout extends Component {
   componentDidMount () {
     window.addEventListener('dragover', this.cancelEvents, false)
     window.addEventListener('drop', this.cancelEvents, false)
+    this.props.hydrateFiles()
   }
 
   onFilesDropped (files) {
     this.props.processFiles(files)
+  }
+
+  onRemoveTrack (file) {
+    this.props.removeFile(file)
   }
 
   getPlayer () {
@@ -134,6 +146,7 @@ class Layout extends Component {
                       isPlaying={isPlaying}
                       albumColor={TRACK_COLOR}
                       selectedColor={PROGRESS_COLOR}
+                      removeTrack={this.onRemoveTrack}
                       setCurrentTrack={(track) => {
                         if (track === currentTrack) {
                           return this.getPlayer().play()

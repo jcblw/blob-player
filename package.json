@@ -25,6 +25,7 @@
     "domla": "^0.2.1",
     "filesize": "^3.3.0",
     "glamor": "2.20.5",
+    "level-js": "^2.2.4",
     "perlin-simplex": "^0.0.2",
     "react": "^15.3.2",
     "react-dom": "^15.3.2",

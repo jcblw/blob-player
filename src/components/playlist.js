@@ -54,6 +54,10 @@ const playlistContent = css(noOverflow, {
   marginTop: 25
 })
 
+const closeIcon = color => css(iconBase, {
+  color
+})
+
 export const PlaylistItem = ({
   name,
   subtext,
@@ -61,6 +65,7 @@ export const PlaylistItem = ({
   track,
   setCurrentTrack,
   pauseTrack,
+  removeTrack,
   isPlaying,
   albumColor,
   selectedColor,
@@ -103,6 +108,17 @@ export const PlaylistItem = ({
       <h1 className={css(header, noOverflow)}>{name}</h1>
       <h3 className={css(subheader, noOverflow)}>{subtext}</h3>
     </div>
+    {removeTrack
+      ? (
+        <div className={css(flex0, closeIcon(albumColor))}>
+          <i
+            onClick={() => removeTrack(track)}
+            className='material-icons'
+          >clear</i>
+        </div>
+      )
+      : null
+    }
   </div>
 )
 
@@ -111,6 +127,7 @@ export default ({
   setCurrentTrack,
   currentTrack,
   pauseTrack,
+  removeTrack,
   isPlaying,
   albumColor,
   selectedColor
@@ -124,6 +141,7 @@ export default ({
         isPlaying={currentTrack === file && isPlaying}
         setCurrentTrack={setCurrentTrack}
         pauseTrack={pauseTrack}
+        removeTrack={removeTrack}
         key={`file${i}`}
         albumColor={albumColor}
         hasControls={file.isLoaded}

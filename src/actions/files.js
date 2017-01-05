@@ -26,5 +26,9 @@ export default {
       type: 'PROCESS_FILES',
       files
     }
+  },
+
+  hydrateFiles () {
+    return {type: 'HYDRATE_FILES'}
   }
 }
