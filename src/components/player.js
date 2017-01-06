@@ -41,7 +41,8 @@ const defaultProps = {
   playIconColor: '#ddd',
   progressColor: 'tomato',
   trackBarColor: '#666',
-  width: 150
+  width: 150,
+  blobSize: 100
 }
 
 const startStopped = true
@@ -162,10 +163,12 @@ class Player extends Component {
       width,
       height,
       className,
-      onEnd
+      onEnd,
+      blobSize
     } = this.props
 
     const isPlaying = this.isPlaying()
+    const scrubberSize = blobSize / 5
     return (
       <div className={className}>
         {src
@@ -182,6 +185,7 @@ class Player extends Component {
           : null
         }
         <Stage
+          key={`${width}-${height}`}
           width={width}
           height={height}
           onDraw={(_, ...args) => {
@@ -199,11 +203,11 @@ class Player extends Component {
             progressColor={progressColor}
             mapSegments={mapSegments}
             defaultStoppedState={startStopped}
-            radius={100}
+            radius={blobSize}
             animationDuration={1000}
-            stoppedRadius={90}
+            stoppedRadius={blobSize - 10}
             spread={currentFreq ? (currentFreq * 6) + 6 : 6}
-            scrubberRadius={currentFreq ? (currentFreq * 5) + 20 : 20}
+            scrubberRadius={currentFreq ? (currentFreq * 5) + scrubberSize : scrubberSize}
             currentTime={isEnd ? 0 : currentTime}
             duration={isEnd ? 0 : duration}
             segmentAmount={1080 * 2}
@@ -216,7 +220,7 @@ class Player extends Component {
           <PlayButton
             color={playIconColor}
             isPlaying={isPlaying}
-            size={50}
+            size={blobSize / 2}
           />
         </Stage>
       </div>

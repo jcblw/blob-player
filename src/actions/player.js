@@ -40,3 +40,8 @@ export const setWasPlaying = wasPlaying => {
     wasPlaying
   }
 }
+
+export const setFullScreen = isFullScreen => ({
+  type: 'SET_FULLSCREEN',
+  isFullScreen
+})

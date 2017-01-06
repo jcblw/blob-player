@@ -43,11 +43,19 @@ const wasPlaying = (state = false, action) => {
   return state
 }
 
+const isFullScreen = (state = false, action) => {
+  if (action.type === 'SET_FULLSCREEN') {
+    return action.isFullScreen
+  }
+  return state
+}
+
 export default combineReducers({
   audioReady,
   currentFreq,
   currentTime,
   duration,
+  isFullScreen,
   isEnd,
   wasPlaying
 })

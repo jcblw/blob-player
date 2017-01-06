@@ -3,8 +3,9 @@ import React, {Component, PropTypes} from 'react'
 import {connect} from 'react-redux'
 import {bindActionCreators} from 'redux'
 import fileActions from '../actions/files'
+import * as playerActions from '../actions/player'
 import * as playlistActions from '../actions/playlist'
-import {flex, flex0, flex1, column, row} from '../styles/flex'
+import {flex, flex0, flex1, flex20, column, row, alignItems, justifyContent} from '../styles/flex'
 import {toReadableTime} from '../utilities/format'
 import Player from './player'
 import Playlist, {PlaylistItem} from './playlist'
@@ -23,9 +24,11 @@ const propTypes = {
   hydrateFiles: PropTypes.func,
   removeFile: PropTypes.func,
   setCurrentTrack: PropTypes.func,
+  setFullScreen: PropTypes.func,
   currentTrack: PropTypes.any,
   duration: PropTypes.number,
-  currentTime: PropTypes.number
+  currentTime: PropTypes.number,
+  isFullScreen: PropTypes.bool
 }
 const defaultProps = {
   files: []
@@ -56,7 +59,8 @@ const bottomBar = css({
   minHeight: PLAYER_HEIGHT,
   boxShadow: '0 1px 5px rgba(0,0,0,0.5)',
   zIndex: 2,
-  transition: 'all .3s ease-in-out'
+  transition: 'all .3s ease-in-out',
+  position: 'relative'
 })
 const hiddenBar = css({
   minHeight: 0,
@@ -72,6 +76,11 @@ const queueIcon = css({
 })
 const playlistMeta = css({
   padding: '10px 25px'
+})
+const fullscreenIcon = css({
+  position: 'absolute',
+  top: 10,
+  right: 10
 })
 
 class Layout extends Component {
@@ -98,6 +107,12 @@ class Layout extends Component {
     this.props.removeFile(file)
   }
 
+  onFullscreen (shouldBeFullScreen) {
+    return () => {
+      this.props.setFullScreen(shouldBeFullScreen)
+    }
+  }
+
   getPlayer () {
     return this.player
       ? this.player.getWrappedInstance()
@@ -115,7 +130,14 @@ class Layout extends Component {
   }
 
   render () {
-    const {files, currentTrack, duration, currentTime, setCurrentTrack} = this.props
+    const {
+      files,
+      currentTrack,
+      duration,
+      currentTime,
+      setCurrentTrack,
+      isFullScreen
+    } = this.props
     const buffer = currentTrack ? currentTrack.buffer : null
     const isPlaying = this.getPlayer().isPlaying()
     const currentTrackIndex = files.indexOf(currentTrack)
@@ -167,8 +189,8 @@ class Layout extends Component {
         </div>
         <div className={css(
           flex,
-          flex0,
-          row,
+          alignItems('center'),
+          isFullScreen ? [flex20, column] : [flex0, row],
           bottomBar,
           currentTrack
             ? null
@@ -196,8 +218,9 @@ class Layout extends Component {
             playBgColor={PLAY_BUTTON_BG}
             trackBarColor={TRACK_COLOR}
             progressColor={PROGRESS_COLOR}
-            width={150}
-            height={PLAYER_HEIGHT}
+            width={isFullScreen ? 300 : 150}
+            height={isFullScreen ? 300 : 150}
+            blobSize={isFullScreen ? 200 : 100}
             onEnd={() => {
               const index = files.indexOf(currentTrack)
               const nextTrack = files[index + 1]
@@ -217,7 +240,10 @@ class Layout extends Component {
               )
               : null
             }
-
+            {isFullScreen
+              ? <i className={`material-icons ${fullscreenIcon}`} onClick={this.onFullscreen(false)}>fullscreen_exit</i>
+              : <i className={`material-icons ${fullscreenIcon}`} onClick={this.onFullscreen(true)}>fullscreen</i>
+            }
           </div>
         </div>
       </div>
@@ -230,14 +256,16 @@ function mapStateToProps ({files, playlist, player}) {
     files,
     currentTrack: playlist.currentTrack,
     duration: player.duration,
-    currentTime: player.currentTime
+    currentTime: player.currentTime,
+    isFullScreen: player.isFullScreen
   }
 }
 
 function mapDispatchToProps (dispatch) {
   return Object.assign({},
     bindActionCreators(fileActions, dispatch),
-    bindActionCreators(playlistActions, dispatch)
+    bindActionCreators(playlistActions, dispatch),
+    bindActionCreators(playerActions, dispatch)
   )
 }
 
