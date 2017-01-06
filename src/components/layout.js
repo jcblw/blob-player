@@ -60,7 +60,7 @@ const bottomBar = css({
   boxShadow: '0 1px 5px rgba(0,0,0,0.5)',
   zIndex: 2,
   transition: 'all .3s ease-in-out',
-  position: 'relative'
+  tranform: 'translateZ(0)'
 })
 const hiddenBar = css({
   minHeight: 0,
@@ -79,7 +79,7 @@ const playlistMeta = css({
 })
 const fullscreenIcon = css({
   position: 'absolute',
-  top: 10,
+  bottom: 10,
   right: 10
 })
 

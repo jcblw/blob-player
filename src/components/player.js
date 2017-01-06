@@ -168,7 +168,8 @@ class Player extends Component {
     } = this.props
 
     const isPlaying = this.isPlaying()
-    const scrubberSize = blobSize / 5
+    const scrubberSize = blobSize / 6
+    const freqChange = blobSize / 16
     return (
       <div className={className}>
         {src
@@ -206,8 +207,8 @@ class Player extends Component {
             radius={blobSize}
             animationDuration={1000}
             stoppedRadius={blobSize - 10}
-            spread={currentFreq ? (currentFreq * 6) + 6 : 6}
-            scrubberRadius={currentFreq ? (currentFreq * 5) + scrubberSize : scrubberSize}
+            spread={currentFreq ? (currentFreq * freqChange) + freqChange : freqChange}
+            scrubberRadius={currentFreq ? (currentFreq * freqChange) + scrubberSize : scrubberSize}
             currentTime={isEnd ? 0 : currentTime}
             duration={isEnd ? 0 : duration}
             segmentAmount={1080 * 2}
