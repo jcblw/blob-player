@@ -124,12 +124,13 @@ class Player extends Component {
     // set time
     const {setAudioCurrentTime, wasPlaying, setWasPlaying} = this.props
     if (!setAudioCurrentTime) return
-    this.sound.pause()
     setAudioCurrentTime(time)
     if (wasPlaying) {
+      this.sound.pause()
       setWasPlaying(false)
-      this.sound.play(time)
+      return this.sound.play(time)
     }
+    this.sound.setCurrentTime(time)
   }
 
   onScrubberDragged () {
@@ -198,11 +199,11 @@ class Player extends Component {
             progressColor={progressColor}
             mapSegments={mapSegments}
             defaultStoppedState={startStopped}
-            radius={50}
+            radius={100}
             animationDuration={1000}
-            stoppedRadius={45}
-            spread={currentFreq ? (currentFreq * 3) + 3 : 3}
-            scrubberRadius={currentFreq ? (currentFreq * 2) + 10 : 10}
+            stoppedRadius={90}
+            spread={currentFreq ? (currentFreq * 6) + 6 : 6}
+            scrubberRadius={currentFreq ? (currentFreq * 5) + 20 : 20}
             currentTime={isEnd ? 0 : currentTime}
             duration={isEnd ? 0 : duration}
             segmentAmount={1080 * 2}
@@ -215,7 +216,7 @@ class Player extends Component {
           <PlayButton
             color={playIconColor}
             isPlaying={isPlaying}
-            size={25}
+            size={50}
           />
         </Stage>
       </div>

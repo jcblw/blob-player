@@ -62,8 +62,8 @@ class Stage extends Component {
       }
       const {offsetTop, offsetLeft} = this.canvas
       const target = [
-        e.pageX - offsetLeft,
-        e.pageY - offsetTop
+        (e.pageX - offsetLeft) * 2,
+        (e.pageY - offsetTop) * 2
       ]
 
       this.childrenRefs.forEach((child) => {
@@ -119,7 +119,9 @@ class Stage extends Component {
     const {width, height, children, backgroundColor} = this.props
     const expand = css({
       display: 'block',
-      backgroundColor: backgroundColor
+      backgroundColor: backgroundColor,
+      width,
+      height
     })
     const cloneChildren = React.Children
       .map(children, (child, i) => {
@@ -150,8 +152,8 @@ class Stage extends Component {
         onTouchEnd={this.onCanvasEvent('touchEnd')}
 
         className={expand}
-        width={width}
-        height={height}
+        width={width * 2}
+        height={height * 2}
       >
         {cloneChildren}
       </canvas>

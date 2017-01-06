@@ -196,7 +196,7 @@ class Layout extends Component {
             playBgColor={PLAY_BUTTON_BG}
             trackBarColor={TRACK_COLOR}
             progressColor={PROGRESS_COLOR}
-            width={320}
+            width={150}
             height={PLAYER_HEIGHT}
             onEnd={() => {
               const index = files.indexOf(currentTrack)

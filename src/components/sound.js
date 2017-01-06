@@ -128,6 +128,10 @@ class Sound extends Component {
     }
   }
 
+  setCurrentTime (time) {
+    soundBoard.setCurrentTime(this.id, time)
+  }
+
   getFullDuration () {
     return soundBoard.localSoundBuffers[this.id].buffer.duration
   }

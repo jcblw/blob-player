@@ -233,8 +233,8 @@ class Blob extends Component {
   mouseMove (e) {
     // need to filter this to only when the drag has started
     const {offsetTop, offsetLeft} = this.props.canvas
-    const x = e.pageX - offsetLeft
-    const y = e.pageY - offsetTop
+    const x = (e.pageX - offsetLeft) * 2
+    const y = (e.pageY - offsetTop) * 2
     const point = [x, y]
     const closestPoint = this._points
       .reduce((currentPoint, nextPoint) => {
@@ -256,8 +256,8 @@ class Blob extends Component {
     const {onStopSound, canvas, onScrubberDragged} = this.props
     const {offsetTop, offsetLeft} = canvas
     const target = [
-      e.pageX - offsetLeft,
-      e.pageY - offsetTop
+      (e.pageX - offsetLeft) * 2,
+      (e.pageY - offsetTop) * 2
     ]
 
     if (this.doesPointCollideOnScrubber(target)) {
