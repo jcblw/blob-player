@@ -1,5 +1,7 @@
 # blob player
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/jcblw/blob-player.svg)](https://greenkeeper.io/)
+
 A audio player using [sound board](https://github.com/jcblw/sound-board) lib 
 
 [check out the demo](https://blob-player-auhhcnbdnk.now.sh/)
